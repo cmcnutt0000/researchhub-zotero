@@ -48,7 +48,7 @@ export function registerChatPanel(): void {
       icon: `chrome://${addon.data.config.addonRef}/content/icons/favicon@0.5x.png`,
     },
     bodyXHTML: `
-      <html:div style="display:flex;flex-direction:column;padding:8px;">
+      <html:div xmlns:html="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;padding:8px;">
         <html:div
           id="researchhub-chat-messages"
           style="min-height:200px;max-height:400px;overflow-y:auto;padding:8px;border:1px solid #ddd;border-radius:4px;margin-bottom:8px;background:#fafafa;"
@@ -72,7 +72,7 @@ export function registerChatPanel(): void {
       </html:div>
     `,
 
-    onItemChange({ setEnabled }: any) {
+    onItemChange({ item, setEnabled, tabType }: any) {
       setEnabled(true);
       return true;
     },
