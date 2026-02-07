@@ -5,25 +5,75 @@
   onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window })"
 >
   <label><html:h2 data-l10n-id="pref-title"></html:h2></label>
-  <checkbox
-    id="zotero-prefpane-__addonRef__-enable"
-    preference="enable"
-    data-l10n-id="pref-enable"
-  />
-  <hbox>
-    <html:label
-      for="zotero-prefpane-__addonRef__-input"
-      data-l10n-id="pref-input"
-    ></html:label>
-    <html:input
-      type="text"
-      id="zotero-prefpane-__addonRef__-input"
-      preference="input"
-    ></html:input>
+
+  <!-- LLM Configuration -->
+  <label><html:h3 data-l10n-id="pref-llm-header"></html:h3></label>
+  <hbox align="center">
+    <html:label for="zotero-prefpane-__addonRef__-llm-provider" data-l10n-id="pref-llm-provider"></html:label>
+    <menulist id="zotero-prefpane-__addonRef__-llm-provider" preference="llm.provider" native="true">
+      <menupopup>
+        <menuitem label="Ollama (Local)" value="ollama" />
+        <menuitem label="OpenAI" value="openai" />
+        <menuitem label="Anthropic" value="anthropic" />
+        <menuitem label="OpenRouter" value="openrouter" />
+      </menupopup>
+    </menulist>
   </hbox>
-  <hbox class="virtualized-table-container" flex="1" height="300px">
-    <html:div id="__addonRef__-table-container" />
+
+  <hbox align="center" id="zotero-prefpane-__addonRef__-ollama-endpoint-row">
+    <html:label for="zotero-prefpane-__addonRef__-ollama-endpoint" data-l10n-id="pref-llm-ollama-endpoint"></html:label>
+    <html:input type="text" id="zotero-prefpane-__addonRef__-ollama-endpoint" preference="llm.ollamaEndpoint" style="flex: 1;"></html:input>
   </hbox>
+
+  <hbox align="center" id="zotero-prefpane-__addonRef__-ollama-model-row">
+    <html:label for="zotero-prefpane-__addonRef__-ollama-model" data-l10n-id="pref-llm-ollama-model"></html:label>
+    <html:input type="text" id="zotero-prefpane-__addonRef__-ollama-model" preference="llm.ollamaModel" style="flex: 1;"></html:input>
+  </hbox>
+
+  <hbox align="center" id="zotero-prefpane-__addonRef__-api-key-row">
+    <html:label for="zotero-prefpane-__addonRef__-api-key" data-l10n-id="pref-llm-api-key"></html:label>
+    <html:input type="password" id="zotero-prefpane-__addonRef__-api-key" preference="llm.apiKey" style="flex: 1;"></html:input>
+  </hbox>
+
+  <hbox align="center" id="zotero-prefpane-__addonRef__-cloud-model-row">
+    <html:label for="zotero-prefpane-__addonRef__-cloud-model" data-l10n-id="pref-llm-cloud-model"></html:label>
+    <html:input type="text" id="zotero-prefpane-__addonRef__-cloud-model" preference="llm.cloudModel" style="flex: 1;"></html:input>
+  </hbox>
+
+  <hbox align="center">
+    <html:label for="zotero-prefpane-__addonRef__-max-tokens" data-l10n-id="pref-llm-max-tokens"></html:label>
+    <html:input type="number" id="zotero-prefpane-__addonRef__-max-tokens" preference="llm.maxTokens" style="width: 80px;"></html:input>
+  </hbox>
+
+  <hbox align="center">
+    <html:button id="zotero-prefpane-__addonRef__-test-llm" data-l10n-id="pref-llm-test"></html:button>
+    <html:span id="zotero-prefpane-__addonRef__-llm-status" style="margin-left: 8px;"></html:span>
+  </hbox>
+
+  <!-- Integrations -->
+  <label><html:h3 data-l10n-id="pref-integrations-header"></html:h3></label>
+  <hbox align="center">
+    <checkbox id="zotero-prefpane-__addonRef__-linter" preference="integrations.linter" data-l10n-id="pref-linter-enabled" />
+    <html:span id="zotero-prefpane-__addonRef__-linter-status" style="margin-left: 8px; font-style: italic;"></html:span>
+  </hbox>
+  <hbox align="center">
+    <checkbox id="zotero-prefpane-__addonRef__-zotseek" preference="integrations.zotseek" data-l10n-id="pref-zotseek-enabled" />
+    <html:span id="zotero-prefpane-__addonRef__-zotseek-status" style="margin-left: 8px; font-style: italic;"></html:span>
+  </hbox>
+  <checkbox preference="integrations.autoLintOnImport" data-l10n-id="pref-auto-lint" />
+  <checkbox preference="integrations.autoSummarize" data-l10n-id="pref-auto-summarize" />
+
+  <!-- Open Access -->
+  <label><html:h3 data-l10n-id="pref-oa-header"></html:h3></label>
+  <hbox align="center">
+    <html:label for="zotero-prefpane-__addonRef__-oa-email" data-l10n-id="pref-oa-email"></html:label>
+    <html:input type="email" id="zotero-prefpane-__addonRef__-oa-email" preference="oa.email" style="flex: 1;"></html:input>
+  </hbox>
+  <hbox align="center">
+    <html:label for="zotero-prefpane-__addonRef__-oa-cache" data-l10n-id="pref-oa-cache-days"></html:label>
+    <html:input type="number" id="zotero-prefpane-__addonRef__-oa-cache" preference="oa.cacheDays" style="width: 60px;"></html:input>
+  </hbox>
+  <checkbox preference="oa.showColumn" data-l10n-id="pref-oa-show-column" />
 </groupbox>
 <vbox>
   <html:label

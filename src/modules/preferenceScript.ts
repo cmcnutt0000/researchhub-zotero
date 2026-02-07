@@ -1,131 +1,90 @@
+import { getPref } from "../utils/prefs";
 import { config } from "../../package.json";
-import { getString } from "../utils/locale";
 
-export async function registerPrefsScripts(_window: Window) {
-  // This function is called when the prefs window is opened
-  // See addon/content/preferences.xhtml onpaneload
-  if (!addon.data.prefs) {
-    addon.data.prefs = {
-      window: _window,
-      columns: [
-        {
-          dataKey: "title",
-          label: getString("prefs-table-title"),
-          fixedWidth: true,
-          width: 100,
-        },
-        {
-          dataKey: "detail",
-          label: getString("prefs-table-detail"),
-        },
-      ],
-      rows: [
-        {
-          title: "Orange",
-          detail: "It's juicy",
-        },
-        {
-          title: "Banana",
-          detail: "It's sweet",
-        },
-        {
-          title: "Apple",
-          detail: "I mean the fruit APPLE",
-        },
-      ],
-    };
-  } else {
-    addon.data.prefs.window = _window;
+export function registerPrefsScripts(win: Window) {
+  const doc = win.document;
+  const prefix = config.addonRef;
+
+  const el = (id: string) =>
+    doc.getElementById(`zotero-prefpane-${prefix}-${id}`) as HTMLElement | null;
+
+  // Toggle visibility of Ollama vs Cloud fields based on provider
+  function updateProviderFields() {
+    const provider = getPref("llm.provider");
+    const isOllama = provider === "ollama";
+
+    const ollamaEndpointRow = el("ollama-endpoint-row");
+    const ollamaModelRow = el("ollama-model-row");
+    const apiKeyRow = el("api-key-row");
+    const cloudModelRow = el("cloud-model-row");
+
+    if (ollamaEndpointRow)
+      ollamaEndpointRow.style.display = isOllama ? "" : "none";
+    if (ollamaModelRow)
+      ollamaModelRow.style.display = isOllama ? "" : "none";
+    if (apiKeyRow) apiKeyRow.style.display = isOllama ? "none" : "";
+    if (cloudModelRow) cloudModelRow.style.display = isOllama ? "none" : "";
   }
-  updatePrefsUI();
-  bindPrefEvents();
-}
 
-async function updatePrefsUI() {
-  // You can initialize some UI elements on prefs window
-  // with addon.data.prefs.window.document
-  // Or bind some events to the elements
-  const renderLock = ztoolkit.getGlobal("Zotero").Promise.defer();
-  if (addon.data.prefs?.window == undefined) return;
-  const tableHelper = new ztoolkit.VirtualizedTable(addon.data.prefs?.window)
-    .setContainerId(`${config.addonRef}-table-container`)
-    .setProp({
-      id: `${config.addonRef}-prefs-table`,
-      // Do not use setLocale, as it modifies the Zotero.Intl.strings
-      // Set locales directly to columns
-      columns: addon.data.prefs?.columns,
-      showHeader: true,
-      multiSelect: true,
-      staticColumns: true,
-      disableFontSizeScaling: true,
-    })
-    .setProp("getRowCount", () => addon.data.prefs?.rows.length || 0)
-    .setProp(
-      "getRowData",
-      (index) =>
-        addon.data.prefs?.rows[index] || {
-          title: "no data",
-          detail: "no data",
-        },
-    )
-    // Show a progress window when selection changes
-    .setProp("onSelectionChange", (selection) => {
-      new ztoolkit.ProgressWindow(config.addonName)
-        .createLine({
-          text: `Selected line: ${addon.data.prefs?.rows
-            .filter((v, i) => selection.isSelected(i))
-            .map((row) => row.title)
-            .join(",")}`,
-          progress: 100,
-        })
-        .show();
-    })
-    // When pressing delete, delete selected line and refresh table.
-    // Returning false to prevent default event.
-    .setProp("onKeyDown", (event: KeyboardEvent) => {
-      if (event.key == "Delete" || (Zotero.isMac && event.key == "Backspace")) {
-        addon.data.prefs!.rows =
-          addon.data.prefs?.rows.filter(
-            (v, i) => !tableHelper.treeInstance.selection.isSelected(i),
-          ) || [];
-        tableHelper.render();
-        return false;
+  // Update plugin detection status indicators
+  function updatePluginStatus() {
+    const linterStatus = el("linter-status");
+    const zotseekStatus = el("zotseek-status");
+
+    const status = addon.data.orchestrator?.getStatus();
+
+    if (linterStatus) {
+      linterStatus.textContent = status?.linter.available
+        ? "Installed"
+        : "Not detected";
+      linterStatus.style.color = status?.linter.available
+        ? "#2e7d32"
+        : "#c62828";
+    }
+
+    if (zotseekStatus) {
+      zotseekStatus.textContent = status?.zotseek.available
+        ? "Installed"
+        : "Not detected";
+      zotseekStatus.style.color = status?.zotseek.available
+        ? "#2e7d32"
+        : "#c62828";
+    }
+  }
+
+  // Test LLM connection button
+  const testBtn = el("test-llm");
+  const statusSpan = el("llm-status");
+
+  if (testBtn) {
+    testBtn.addEventListener("click", async () => {
+      if (!statusSpan) return;
+      statusSpan.textContent = "Testing...";
+      statusSpan.style.color = "#555";
+
+      try {
+        const available = await addon.data.llmService?.isAvailable();
+        if (available) {
+          statusSpan.textContent = "Connected";
+          statusSpan.style.color = "#2e7d32";
+        } else {
+          statusSpan.textContent = "Not reachable";
+          statusSpan.style.color = "#c62828";
+        }
+      } catch (e) {
+        statusSpan.textContent = `Error: ${e}`;
+        statusSpan.style.color = "#c62828";
       }
-      return true;
-    })
-    // For find-as-you-type
-    .setProp(
-      "getRowString",
-      (index) => addon.data.prefs?.rows[index].title || "",
-    )
-    // Render the table.
-    .render(-1, () => {
-      renderLock.resolve();
     });
-  await renderLock.promise;
-  ztoolkit.log("Preference table rendered!");
-}
+  }
 
-function bindPrefEvents() {
-  addon.data
-    .prefs!.window.document?.querySelector(
-      `#zotero-prefpane-${config.addonRef}-enable`,
-    )
-    ?.addEventListener("command", (e: Event) => {
-      ztoolkit.log(e);
-      addon.data.prefs!.window.alert(
-        `Successfully changed to ${(e.target as XUL.Checkbox).checked}!`,
-      );
-    });
+  // Watch provider dropdown for changes
+  const providerDropdown = el("llm-provider");
+  if (providerDropdown) {
+    providerDropdown.addEventListener("command", updateProviderFields);
+  }
 
-  addon.data
-    .prefs!.window.document?.querySelector(
-      `#zotero-prefpane-${config.addonRef}-input`,
-    )
-    ?.addEventListener("change", (e: Event) => {
-      ztoolkit.log(e);
-      addon.data.prefs!.window.alert(
-        `Successfully changed to ${(e.target as HTMLInputElement).value}!`,
-      );
-    });
+  // Initialize
+  updateProviderFields();
+  updatePluginStatus();
 }

@@ -1,12 +1,15 @@
-import {
-  BasicExampleFactory,
-  HelperExampleFactory,
-  KeyExampleFactory,
-  PromptExampleFactory,
-  UIExampleFactory,
-} from "./modules/examples";
-import { getString, initLocale } from "./utils/locale";
+import { Orchestrator } from "./modules/orchestrator";
+import { LinterBridge } from "./modules/linter-bridge";
+import { ZotSeekBridge } from "./modules/zotseek-bridge";
+import { LLMService } from "./modules/llm-service";
+import { OpenAccessChecker } from "./modules/open-access";
+import { registerOAColumn } from "./modules/columns";
+import { registerItemPaneSection } from "./modules/item-pane-section";
+import { registerMenus } from "./modules/menus";
+import { registerCommands } from "./modules/command-palette";
+import { registerNotifier } from "./modules/notifier";
 import { registerPrefsScripts } from "./modules/preferenceScript";
+import { getString, initLocale } from "./utils/locale";
 import { createZToolkit } from "./utils/ztoolkit";
 
 async function onStartup() {
@@ -18,124 +21,94 @@ async function onStartup() {
 
   initLocale();
 
-  BasicExampleFactory.registerPrefs();
+  // Initialize module instances
+  addon.data.orchestrator = new Orchestrator();
+  addon.data.linterBridge = new LinterBridge();
+  addon.data.zotseekBridge = new ZotSeekBridge();
+  addon.data.llmService = new LLMService();
+  addon.data.oaChecker = new OpenAccessChecker();
 
-  BasicExampleFactory.registerNotifier();
+  // Detect available plugins
+  await addon.data.orchestrator.detectPlugins();
 
-  KeyExampleFactory.registerShortcuts();
+  // Register preference pane
+  Zotero.PreferencePanes.register({
+    pluginID: addon.data.config.addonID,
+    src: rootURI + "content/preferences.xhtml",
+    label: getString("prefs-title"),
+    image: `chrome://${addon.data.config.addonRef}/content/icons/favicon.png`,
+  });
 
-  await UIExampleFactory.registerExtraColumn();
+  // Register OA column
+  await registerOAColumn();
 
-  await UIExampleFactory.registerExtraColumnWithCustomCell();
+  // Register item pane section
+  registerItemPaneSection();
 
-  UIExampleFactory.registerItemPaneCustomInfoRow();
+  // Register notifier for auto-triggers on import
+  addon.data.notifierID = registerNotifier();
 
-  UIExampleFactory.registerItemPaneSection();
-
-  UIExampleFactory.registerReaderItemPaneSection();
-
+  // Process all main windows
   await Promise.all(
     Zotero.getMainWindows().map((win) => onMainWindowLoad(win)),
   );
 
-  // Mark initialized as true to confirm plugin loading status
-  // outside of the plugin (e.g. scaffold testing process)
   addon.data.initialized = true;
 }
 
 async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
-  // Create ztoolkit for every window
   addon.data.ztoolkit = createZToolkit();
 
+  // Load localization into window
   win.MozXULElement.insertFTLIfNeeded(
     `${addon.data.config.addonRef}-mainWindow.ftl`,
   );
 
-  const popupWin = new ztoolkit.ProgressWindow(addon.data.config.addonName, {
+  // Register UI components
+  registerMenus();
+  registerCommands();
+
+  // Insert stylesheet
+  const doc = win.document;
+  ztoolkit.UI.createElement(doc, "link", {
+    properties: {
+      type: "text/css",
+      rel: "stylesheet",
+      href: `chrome://${addon.data.config.addonRef}/content/researchhubPane.css`,
+    },
+  });
+
+  // Show startup notification
+  const status = addon.data.orchestrator?.getStatus();
+  const parts = [];
+  if (status?.linter.available) parts.push("Linter");
+  if (status?.zotseek.available) parts.push("ZotSeek");
+  const integrations =
+    parts.length > 0 ? `Integrations: ${parts.join(", ")}` : "Standalone mode";
+
+  new ztoolkit.ProgressWindow(addon.data.config.addonName, {
     closeOnClick: true,
-    closeTime: -1,
   })
     .createLine({
-      text: getString("startup-begin"),
-      type: "default",
-      progress: 0,
+      text: `Ready. ${integrations}`,
+      type: "success",
+      progress: 100,
     })
-    .show();
-
-  await Zotero.Promise.delay(1000);
-  popupWin.changeLine({
-    progress: 30,
-    text: `[30%] ${getString("startup-begin")}`,
-  });
-
-  UIExampleFactory.registerStyleSheet(win);
-
-  UIExampleFactory.registerRightClickMenuItem();
-
-  UIExampleFactory.registerRightClickMenuPopup(win);
-
-  UIExampleFactory.registerWindowMenuWithSeparator();
-
-  PromptExampleFactory.registerNormalCommandExample();
-
-  PromptExampleFactory.registerAnonymousCommandExample(win);
-
-  PromptExampleFactory.registerConditionalCommandExample();
-
-  await Zotero.Promise.delay(1000);
-
-  popupWin.changeLine({
-    progress: 100,
-    text: `[100%] ${getString("startup-finish")}`,
-  });
-  popupWin.startCloseTimer(5000);
-
-  addon.hooks.onDialogEvents("dialogExample");
+    .show()
+    .startCloseTimer(4000);
 }
 
-async function onMainWindowUnload(win: Window): Promise<void> {
+async function onMainWindowUnload(_win: Window): Promise<void> {
   ztoolkit.unregisterAll();
-  addon.data.dialog?.window?.close();
 }
 
 function onShutdown(): void {
   ztoolkit.unregisterAll();
-  addon.data.dialog?.window?.close();
-  // Remove addon object
   addon.data.alive = false;
   // @ts-expect-error - Plugin instance is not typed
   delete Zotero[addon.data.config.addonInstance];
 }
 
-/**
- * This function is just an example of dispatcher for Notify events.
- * Any operations should be placed in a function to keep this funcion clear.
- */
-async function onNotify(
-  event: string,
-  type: string,
-  ids: Array<string | number>,
-  extraData: { [key: string]: any },
-) {
-  // You can add your code to the corresponding notify type
-  ztoolkit.log("notify", event, type, ids, extraData);
-  if (
-    event == "select" &&
-    type == "tab" &&
-    extraData[ids[0]].type == "reader"
-  ) {
-    BasicExampleFactory.exampleNotifierCallback();
-  } else {
-    return;
-  }
-}
-
-/**
- * This function is just an example of dispatcher for Preference UI events.
- * Any operations should be placed in a function to keep this funcion clear.
- * @param type event type
- * @param data event data
- */
 async function onPrefsEvent(type: string, data: { [key: string]: any }) {
   switch (type) {
     case "load":
@@ -146,52 +119,10 @@ async function onPrefsEvent(type: string, data: { [key: string]: any }) {
   }
 }
 
-function onShortcuts(type: string) {
-  switch (type) {
-    case "larger":
-      KeyExampleFactory.exampleShortcutLargerCallback();
-      break;
-    case "smaller":
-      KeyExampleFactory.exampleShortcutSmallerCallback();
-      break;
-    default:
-      break;
-  }
-}
-
-function onDialogEvents(type: string) {
-  switch (type) {
-    case "dialogExample":
-      HelperExampleFactory.dialogExample();
-      break;
-    case "clipboardExample":
-      HelperExampleFactory.clipboardExample();
-      break;
-    case "filePickerExample":
-      HelperExampleFactory.filePickerExample();
-      break;
-    case "progressWindowExample":
-      HelperExampleFactory.progressWindowExample();
-      break;
-    case "vtableExample":
-      HelperExampleFactory.vtableExample();
-      break;
-    default:
-      break;
-  }
-}
-
-// Add your hooks here. For element click, etc.
-// Keep in mind hooks only do dispatch. Don't add code that does real jobs in hooks.
-// Otherwise the code would be hard to read and maintain.
-
 export default {
   onStartup,
   onShutdown,
   onMainWindowLoad,
   onMainWindowUnload,
-  onNotify,
   onPrefsEvent,
-  onShortcuts,
-  onDialogEvents,
 };

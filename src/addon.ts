@@ -1,29 +1,31 @@
 import { config } from "../package.json";
-import { ColumnOptions, DialogHelper } from "zotero-plugin-toolkit";
 import hooks from "./hooks";
 import { createZToolkit } from "./utils/ztoolkit";
+import type { Orchestrator } from "./modules/orchestrator";
+import type { LinterBridge } from "./modules/linter-bridge";
+import type { ZotSeekBridge } from "./modules/zotseek-bridge";
+import type { LLMService } from "./modules/llm-service";
+import type { OpenAccessChecker } from "./modules/open-access";
 
 class Addon {
   public data: {
     alive: boolean;
     config: typeof config;
-    // Env type, see build.js
     env: "development" | "production";
-    initialized?: boolean;
+    initialized: boolean;
     ztoolkit: ZToolkit;
-    locale?: {
-      current: any;
-    };
-    prefs?: {
-      window: Window;
-      columns: Array<ColumnOptions>;
-      rows: Array<{ [dataKey: string]: string }>;
-    };
-    dialog?: DialogHelper;
+    locale?: { current: any };
+    // Module instances (initialized in hooks.onStartup)
+    orchestrator?: Orchestrator;
+    linterBridge?: LinterBridge;
+    zotseekBridge?: ZotSeekBridge;
+    llmService?: LLMService;
+    oaChecker?: OpenAccessChecker;
+    // State
+    notifierID?: string;
+    columnDataKey?: string;
   };
-  // Lifecycle hooks
   public hooks: typeof hooks;
-  // APIs
   public api: object;
 
   constructor() {

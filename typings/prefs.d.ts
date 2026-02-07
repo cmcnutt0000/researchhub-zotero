@@ -7,8 +7,21 @@
 declare namespace _ZoteroTypes {
   interface Prefs {
     PluginPrefsMap: {
-      "enable": boolean;
-      "input": string;
+      "llm.provider": string;
+      "llm.ollamaEndpoint": string;
+      "llm.ollamaModel": string;
+      "llm.apiKey": string;
+      "llm.cloudModel": string;
+      "llm.maxTokens": number;
+      "integrations.linter": boolean;
+      "integrations.zotseek": boolean;
+      "integrations.openAccess": boolean;
+      "integrations.autoLintOnImport": boolean;
+      "integrations.autoSummarize": boolean;
+      "oa.email": string;
+      "oa.cacheDays": number;
+      "oa.showColumn": boolean;
+      "ui.showItemPaneSection": boolean;
     };
   }
 }
