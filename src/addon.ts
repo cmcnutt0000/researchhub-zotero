@@ -6,6 +6,7 @@ import type { LinterBridge } from "./modules/linter-bridge";
 import type { ZotSeekBridge } from "./modules/zotseek-bridge";
 import type { LLMService } from "./modules/llm-service";
 import type { OpenAccessChecker } from "./modules/open-access";
+import type { AgentEngine } from "./modules/agent";
 
 class Addon {
   public data: {
@@ -21,6 +22,7 @@ class Addon {
     zotseekBridge?: ZotSeekBridge;
     llmService?: LLMService;
     oaChecker?: OpenAccessChecker;
+    agent?: AgentEngine;
     // State
     notifierID?: string;
     columnDataKey?: string;

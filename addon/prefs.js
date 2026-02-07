@@ -20,3 +20,6 @@ pref("oa.showColumn", true);
 
 // UI
 pref("ui.showItemPaneSection", true);
+
+// Agent
+pref("agent.maxIterations", 10);

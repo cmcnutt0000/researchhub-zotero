@@ -13,3 +13,11 @@
   font-size: 13px;
   line-height: 1.5;
 }
+
+/* Chat panel styles */
+#researchhub-chat-messages:empty::before {
+  content: "Type a message to get started...";
+  color: #999;
+  font-style: italic;
+  font-size: 13px;
+}

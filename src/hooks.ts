@@ -9,6 +9,8 @@ import { registerMenus } from "./modules/menus";
 import { registerCommands } from "./modules/command-palette";
 import { registerNotifier } from "./modules/notifier";
 import { registerPrefsScripts } from "./modules/preferenceScript";
+import { AgentEngine } from "./modules/agent";
+import { registerChatPanel, setChatAgent } from "./modules/chat-panel";
 import { getString, initLocale } from "./utils/locale";
 import { createZToolkit } from "./utils/ztoolkit";
 
@@ -28,6 +30,15 @@ async function onStartup() {
   addon.data.llmService = new LLMService();
   addon.data.oaChecker = new OpenAccessChecker();
 
+  // Initialize agent engine
+  addon.data.agent = new AgentEngine(
+    addon.data.llmService!,
+    addon.data.zotseekBridge!,
+    addon.data.linterBridge!,
+    addon.data.oaChecker!,
+  );
+  setChatAgent(addon.data.agent);
+
   // Detect available plugins
   await addon.data.orchestrator.detectPlugins();
 
@@ -41,6 +52,9 @@ async function onStartup() {
 
   // Register OA column
   await registerOAColumn();
+
+  // Register chat panel
+  registerChatPanel();
 
   // Register item pane section
   registerItemPaneSection();

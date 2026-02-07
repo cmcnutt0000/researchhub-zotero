@@ -57,3 +57,9 @@ status-plugin-installed = Installed
 status-plugin-missing = Not detected
 status-llm-connected = Connected
 status-llm-disconnected = Not reachable
+
+# Chat Panel
+chat-section-header =
+    .label = ResearchHub Chat
+chat-section-sidenav =
+    .tooltiptext = ResearchHub: AI Chat Assistant

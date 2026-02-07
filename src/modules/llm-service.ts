@@ -1,11 +1,11 @@
 import { getPref } from "../utils/prefs";
 
-interface ChatMessage {
+export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
 
-interface LLMConfig {
+export interface LLMConfig {
   provider: string;
   endpoint: string;
   model: string;
@@ -14,7 +14,7 @@ interface LLMConfig {
 }
 
 export class LLMService {
-  private getConfig(): LLMConfig {
+  public getConfig(): LLMConfig {
     const provider = getPref("llm.provider");
     if (provider === "ollama") {
       return {
@@ -156,6 +156,57 @@ export class LLMService {
       data.choices?.[0]?.message?.content?.trim() ||
       "Unable to generate summary."
     );
+  }
+
+  /** Single LLM round-trip with tool definitions. Returns raw response. */
+  public async chatWithTools(messages: ChatMessage[], toolDefs: any[]): Promise<any> {
+    const config = this.getConfig();
+
+    if (config.provider === "anthropic") {
+      const systemMsg = messages.find((m) => m.role === "system");
+      const nonSystemMsgs = messages.filter((m) => m.role !== "system");
+      const body: any = {
+        model: config.model,
+        messages: nonSystemMsgs,
+        tools: toolDefs,
+        max_tokens: 4096,
+        temperature: 0.7,
+      };
+      if (systemMsg) body.system = systemMsg.content;
+
+      const response = await Zotero.HTTP.request("POST", config.endpoint + "/messages", {
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": config.apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify(body),
+        responseType: "json",
+        timeout: 120000,
+      });
+      return typeof response.response === "string" ? JSON.parse(response.response) : response.response;
+    }
+
+    // OpenAI-compatible (OpenAI, Ollama, OpenRouter)
+    const url = config.provider === "ollama"
+      ? config.endpoint + "/v1/chat/completions"
+      : config.endpoint + "/chat/completions";
+
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (config.apiKey) headers["Authorization"] = "Bearer " + config.apiKey;
+
+    const openaiTools = toolDefs.map((t: any) => ({
+      type: "function" as const,
+      function: { name: t.name, description: t.description, parameters: t.input_schema },
+    }));
+
+    const response = await Zotero.HTTP.request("POST", url, {
+      headers,
+      body: JSON.stringify({ model: config.model, messages, tools: openaiTools, max_tokens: 4096, temperature: 0.7 }),
+      responseType: "json",
+      timeout: 120000,
+    });
+    return typeof response.response === "string" ? JSON.parse(response.response) : response.response;
   }
 
   /** Anthropic Messages API (different format from OpenAI) */

@@ -22,6 +22,7 @@ declare namespace _ZoteroTypes {
       "oa.cacheDays": number;
       "oa.showColumn": boolean;
       "ui.showItemPaneSection": boolean;
+      "agent.maxIterations": number;
     };
   }
 }

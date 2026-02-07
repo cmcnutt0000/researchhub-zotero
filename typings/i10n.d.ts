@@ -3,6 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 export type FluentMessageId =
+  | 'chat-section-header'
+  | 'chat-section-sidenav'
   | 'column-oa-label'
   | 'item-info-row-example-label'
   | 'item-section-btn-fix'
